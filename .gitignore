@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# 환경 변수 (절대 커밋 금지!)
+.env
+
+# SQLite 로컬 테스트용 DB
+*.db
+
+# 에디터
+.vscode/
+.idea/
+*.swp

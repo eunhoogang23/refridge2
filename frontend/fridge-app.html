@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>냉장고 파먹기 도우미</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EFF3F0;
+    --panel:#FFFFFF;
+    --ink:#1F2C28;
+    --sub:#5C6E68;
+    --accent:#2F7A67;
+    --accent-deep:#123F36;
+    --accent-soft:#DCEDE6;
+    --grade-a:#E2543D;
+    --grade-a-soft:#FBE3DE;
+    --grade-b:#D99A20;
+    --grade-b-soft:#FBEBCE;
+    --grade-c:#3E8F60;
+    --grade-c-soft:#DFF1E6;
+    --grade-x:#8C9A94;
+    --grade-x-soft:#E7ECEA;
+    --line:#DCE5E1;
+    --shadow: 0 6px 18px rgba(18,63,54,0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Pretendard', -apple-system, sans-serif;
+    min-height:100vh;
+    padding-bottom:60px;
+  }
+  .num{font-family:'DM Mono', monospace;}
+  #app{max-width:920px; margin:0 auto; padding:0 16px;}
+
+  header.topbar{
+    padding:28px 4px 18px;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:12px;
+  }
+  header.topbar .title-block .eyebrow{
+    font-family:'DM Mono', monospace;
+    font-size:12px;
+    letter-spacing:.12em;
+    color:var(--accent);
+    text-transform:uppercase;
+  }
+  header.topbar h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:26px;
+    margin:4px 0 0;
+    color:var(--accent-deep);
+    letter-spacing:-0.01em;
+  }
+  header.topbar p{margin:6px 0 0; color:var(--sub); font-size:13.5px;}
+  #settingsBtn{
+    border:1px solid var(--line);
+    background:var(--panel);
+    color:var(--accent-deep);
+    border-radius:999px;
+    padding:9px 16px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+    box-shadow:var(--shadow);
+  }
+  #settingsBtn:hover{background:var(--accent-soft);}
+
+  nav.tabs{
+    display:flex;
+    gap:8px;
+    padding:4px 0 20px;
+    flex-wrap:wrap;
+  }
+  nav.tabs button{
+    font-family:'Pretendard';
+    font-weight:600;
+    font-size:13.5px;
+    padding:10px 16px;
+    border-radius:14px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    color:var(--sub);
+    cursor:pointer;
+    box-shadow:var(--shadow);
+    transition:all .15s ease;
+  }
+  nav.tabs button.active{
+    background:var(--accent-deep);
+    color:#fff;
+    border-color:var(--accent-deep);
+  }
+
+  section.tab-panel{display:none;}
+  section.tab-panel.active{display:block; animation:fadeIn .2s ease;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+
+  .panel-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:20px;
+    box-shadow:var(--shadow);
+    margin-bottom:16px;
+  }
+  .panel-card h2{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:17px;
+    margin:0 0 4px;
+    color:var(--accent-deep);
+  }
+  .panel-card .hint{color:var(--sub); font-size:12.5px; margin:0 0 14px;}
+
+  /* 냉장고 현황 */
+  .fridge-toolbar{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;}
+  .fridge-toolbar .legend{display:flex; gap:10px; font-size:12px; color:var(--sub); flex-wrap:wrap;}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+  .dot.a{background:var(--grade-a);} .dot.b{background:var(--grade-b);} .dot.c{background:var(--grade-c);} .dot.x{background:var(--grade-x);}
+
+  .addBtn{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:12px;
+    padding:9px 14px;
+    font-weight:700;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .addBtn:hover{background:var(--accent-deep);}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));
+    gap:12px;
+  }
+  .food-card{
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:14px 12px;
+    background:#FBFDFC;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+  }
+  .food-card .cat{font-size:10.5px; color:var(--sub); background:var(--accent-soft); padding:2px 8px; border-radius:999px; align-self:flex-start;}
+  .food-card .ring-wrap{width:64px; height:64px;}
+  .food-card .ring-text{font-family:'DM Mono'; font-size:15px; font-weight:500;}
+  .food-card .name{font-weight:700; font-size:14px; text-align:center; line-height:1.3;}
+  .food-card .grade-badge{
+    font-size:10.5px; font-weight:700; padding:2px 9px; border-radius:999px;
+  }
+  .food-card .exp-date{font-size:10.5px; color:var(--sub);}
+  .food-card .card-actions{display:flex; gap:6px; margin-top:2px;}
+  .food-card .card-actions button{
+    border:none; background:var(--line); color:var(--ink);
+    border-radius:8px; padding:4px 8px; font-size:11px; cursor:pointer;
+  }
+  .food-card .card-actions button.use{background:var(--accent-soft); color:var(--accent-deep);}
+  .food-card .card-actions button.del{background:var(--grade-a-soft); color:var(--grade-a);}
+  .empty-msg{color:var(--sub); font-size:13px; padding:20px 0; text-align:center;}
+
+  /* form */
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .form-grid label{display:block; font-size:12px; color:var(--sub); margin-bottom:4px; font-weight:600;}
+  .form-grid input, .form-grid select{
+    width:100%; padding:9px 10px; border-radius:10px; border:1px solid var(--line);
+    font-size:13.5px; font-family:'Pretendard'; background:#fff;
+  }
+
+  /* 등록 탭 */
+  .subtabs{display:flex; gap:8px; margin-bottom:14px;}
+  .subtabs button{
+    flex:1; padding:9px; border-radius:10px; border:1px solid var(--line);
+    background:#fff; color:var(--sub); font-weight:600; font-size:13px; cursor:pointer;
+  }
+  .subtabs button.active{background:var(--accent-soft); color:var(--accent-deep); border-color:var(--accent);}
+  .scan-drop{
+    border:1.5px dashed var(--line); border-radius:14px; padding:20px;
+    text-align:center; color:var(--sub); font-size:13px; cursor:pointer; background:#FBFDFC;
+  }
+  .scan-drop:hover{border-color:var(--accent);}
+  .preview-img{max-width:100%; max-height:220px; border-radius:12px; margin-top:12px; display:none;}
+  .primary-btn{
+    background:var(--accent-deep); color:#fff; border:none; border-radius:12px;
+    padding:11px 18px; font-weight:700; font-size:13.5px; cursor:pointer; margin-top:12px;
+  }
+  .primary-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .status-line{font-size:12.5px; color:var(--sub); margin-top:8px; min-height:16px;}
+  .status-line.err{color:var(--grade-a);}
+  .scan-result{margin-top:16px; border-top:1px solid var(--line); padding-top:14px;}
+  .scan-item-row{
+    display:grid; grid-template-columns:1fr 100px 90px 90px auto; gap:8px; align-items:center;
+    padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;
+  }
+  .scan-item-row input, .scan-item-row select{padding:6px 8px; border-radius:8px; border:1px solid var(--line); font-size:12.5px; width:100%;}
+  .scan-item-row.header{font-weight:700; color:var(--sub); font-size:11.5px; border-bottom:2px solid var(--line);}
+
+  /* 레시피 */
+  .recipe-card{border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:12px; background:#FBFDFC;}
+  .recipe-card h3{margin:0 0 8px; font-family:'Space Grotesk'; color:var(--accent-deep); font-size:16px;}
+  .recipe-card .urgent-tags{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;}
+  .recipe-card .urgent-tags span{background:var(--grade-a-soft); color:var(--grade-a); font-size:11px; padding:3px 8px; border-radius:999px; font-weight:700;}
+  .recipe-card ul{margin:0; padding-left:18px; font-size:13px; color:var(--ink); line-height:1.7;}
+  .recipe-card ol{margin:8px 0 0; padding-left:18px; font-size:13px; line-height:1.8;}
+  .recipe-sub{font-size:11.5px; font-weight:700; color:var(--sub); margin:10px 0 4px; text-transform:uppercase; letter-spacing:.05em;}
+
+  /* BMI */
+  .bmi-result{
+    margin-top:16px; padding:20px; border-radius:16px; text-align:center;
+    background:var(--accent-soft);
+  }
+  .bmi-result .bignum{font-family:'DM Mono'; font-size:42px; font-weight:500; color:var(--accent-deep);}
+  .bmi-result .cat{font-size:14px; font-weight:700; margin-top:4px;}
+  .bmi-scale{display:flex; margin-top:14px; border-radius:8px; overflow:hidden; height:8px;}
+  .bmi-scale div{flex:1;}
+
+  /* modal */
+  .modal-backdrop{
+    display:none; position:fixed; inset:0; background:rgba(18,63,54,0.35);
+    align-items:center; justify-content:center; padding:16px; z-index:50;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:#fff; border-radius:18px; padding:22px; max-width:440px; width:100%;
+    box-shadow:0 20px 50px rgba(0,0,0,0.2);
+  }
+  .modal h2{font-family:'Space Grotesk'; color:var(--accent-deep); margin:0 0 4px; font-size:18px;}
+  .modal .hint{color:var(--sub); font-size:12px; margin-bottom:16px;}
+  .modal label{display:block; font-size:12.5px; font-weight:700; margin:12px 0 5px; color:var(--ink);}
+  .modal select{width:100%; padding:10px; border-radius:10px; border:1px solid var(--line); font-size:13px; background:#fff;}
+  .modal-actions{display:flex; gap:8px; margin-top:18px;}
+  .modal-actions button{flex:1; padding:10px; border-radius:10px; border:none; font-weight:700; font-size:13px; cursor:pointer;}
+  .modal-actions .save{background:var(--accent-deep); color:#fff;}
+  .modal-actions .cancel{background:var(--line); color:var(--ink);}
+
+  @media (max-width:520px){
+    .form-grid{grid-template-columns:1fr;}
+    .scan-item-row{grid-template-columns:1fr; gap:4px;}
+    .scan-item-row.header{display:none;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="title-block">
+      <div class="eyebrow">Fridge Rescue Log</div>
+      <h1>냉장고 파먹기 도우미</h1>
+      <p>있는 재료부터, 임박한 순서대로.</p>
+    </div>
+    <button id="settingsBtn" onclick="openSettings()">⚙ AI 엔진 선택</button>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="fridge">🧊 냉장고 현황</button>
+    <button class="tab-btn" data-tab="scan">📷 등록</button>
+    <button class="tab-btn" data-tab="recipe">🍳 레시피 추천</button>
+    <button class="tab-btn" data-tab="bmi">⚖️ BMI 계산기</button>
+  </nav>
+
+  <section class="tab-panel active" id="tab-fridge">
+    <div class="panel-card">
+      <div class="fridge-toolbar">
+        <div class="legend">
+          <span><i class="dot a"></i>A · 2일 이하</span>
+          <span><i class="dot b"></i>B · 3~5일</span>
+          <span><i class="dot c"></i>C · 6일 이상</span>
+          <span><i class="dot x"></i>기한 지남</span>
+        </div>
+        <button class="addBtn" onclick="toggleManualForm()">+ 직접 추가</button>
+      </div>
+      <div id="manualForm" style="display:none; margin-bottom:16px; border-top:1px solid var(--line); padding-top:14px;">
+        <div class="form-grid">
+          <div><label>재료 이름</label><input id="mf-name" placeholder="예: 계란"></div>
+          <div><label>카테고리</label>
+            <select id="mf-cat">
+              <option>채소</option><option>과일</option><option>육류</option><option>수산물</option>
+              <option>유제품</option><option>가공식품</option><option>냉동식품</option><option>기타</option>
+            </select>
+          </div>
+          <div><label>구매/등록일</label><input id="mf-purchase" type="date"></div>
+          <div><label>남은 소비기한(일)</label><input id="mf-shelf" type="number" min="0" value="7"></div>
+        </div>
+        <button class="primary-btn" onclick="addManualItem()">냉장고에 추가</button>
+      </div>
+      <div id="fridgeGrid" class="grid"></div>
+      <div id="fridgeEmpty" class="empty-msg" style="display:none;">아직 등록된 재료가 없어요. '등록' 탭에서 사진으로 추가하거나, '+ 직접 추가'를 눌러보세요.</div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-scan">
+    <div class="panel-card">
+      <h2>사진으로 재료 등록하기</h2>
+      <p class="hint">포장/바코드 사진 또는 영수증 사진을 올리면 백엔드 AI가 재료를 읽어줘요.</p>
+      <div class="subtabs">
+        <button class="sub-btn active" data-sub="pkg" onclick="switchSub('pkg')">📦 포장·바코드 사진</button>
+        <button class="sub-btn" data-sub="rcpt" onclick="switchSub('rcpt')">🧾 영수증 사진</button>
+      </div>
+
+      <div id="sub-pkg" class="sub-panel">
+        <div class="scan-drop" onclick="document.getElementById('pkgFile').click()">사진을 선택하거나 촬영하세요</div>
+        <input type="file" id="pkgFile" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(this,'pkg')">
+        <img id="pkgPreview" class="preview-img">
+        <button class="primary-btn" id="pkgBtn" disabled onclick="runPackageScan()">AI로 인식하기</button>
+        <div class="status-line" id="pkgStatus"></div>
+        <div id="pkgResult" class="scan-result" style="display:none;"></div>
+      </div>
+
+      <div id="sub-rcpt" class="sub-panel" style="display:none;">
+        <div class="scan-drop" onclick="document.getElementById('rcptFile').click()">영수증 전체가 잘 보이게 사진을 선택하세요</div>
+        <input type="file" id="rcptFile" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(this,'rcpt')">
+        <img id="rcptPreview" class="preview-img">
+        <button class="primary-btn" id="rcptBtn" disabled onclick="runReceiptScan()">AI로 인식하기</button>
+        <div class="status-line" id="rcptStatus"></div>
+        <div id="rcptResult" class="scan-result" style="display:none;"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-recipe">
+    <div class="panel-card">
+      <h2>남은 재료로 만드는 레시피</h2>
+      <p class="hint">유통기한이 임박한 재료를 우선적으로 활용하는 레시피를 AI가 추천해요.</p>
+      <button class="primary-btn" onclick="runRecipeRecommend()">레시피 추천 받기</button>
+      <div class="status-line" id="recipeStatus"></div>
+      <div id="recipeResults" style="margin-top:16px;"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-bmi">
+    <div class="panel-card">
+      <h2>BMI 계산기</h2>
+      <p class="hint">체질량지수(BMI) = 몸무게(kg) ÷ 키(m)². 성인 기준이며 참고용입니다.</p>
+      <div class="form-grid">
+        <div><label>키 (cm)</label><input id="bmi-height" type="number" placeholder="예: 160"></div>
+        <div><label>몸무게 (kg)</label><input id="bmi-weight" type="number" placeholder="예: 52"></div>
+      </div>
+      <button class="primary-btn" onclick="calcBMI()">계산하기</button>
+      <div id="bmiResultBox" style="display:none;" class="bmi-result">
+        <div class="bignum num" id="bmiValue">0.0</div>
+        <div class="cat" id="bmiCat">-</div>
+        <div class="bmi-scale">
+          <div style="background:var(--grade-b);"></div>
+          <div style="background:var(--grade-c);"></div>
+          <div style="background:var(--grade-b);"></div>
+          <div style="background:var(--grade-a);"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal">
+    <h2>AI 엔진 선택</h2>
+    <div class="hint">백엔드 서버에 설정된 API 키를 사용하여 동작합니다.</div>
+    
+    <label>1. 바코드·영수증 인식용</label>
+    <select id="provider1">
+      <option value="gemini">Gemini</option>
+      <option value="openai">OpenAI (GPT)</option>
+    </select>
+    
+    <label>2. 레시피 추천용</label>
+    <select id="provider2">
+      <option value="gemini">Gemini</option>
+      <option value="openai">OpenAI (GPT)</option>
+    </select>
+
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeSettings()">닫기</button>
+      <button class="save" onclick="saveSettings()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ★ 백엔드 서버 주소 설정 (FastAPI가 켜져있는 주소)
+// Render 배포 시 같은 서버에서 서빙되므로 자동으로 origin 감지
+const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:8000'
+  : window.location.origin;
+
+/* ---------- 상태 & 저장소 ---------- */
+const STORAGE_KEY = 'fridge_inventory_v2';
+const SETTINGS_KEY = 'fridge_engine_v1';
+let inventory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{ "provider1": "gemini", "provider2": "gemini" }');
+let pendingScan = {pkg:null, rcpt:null};
+
+function saveInventory(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory)); }
+function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function addDays(dateStr, days){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+Number(days));
+  return d.toISOString().slice(0,10);
+}
+function daysLeft(expiryDate){
+  const today = new Date(todayStr()+'T00:00:00');
+  const exp = new Date(expiryDate+'T00:00:00');
+  return Math.round((exp-today)/86400000);
+}
+function gradeOf(dl){
+  if(dl<0) return 'x';
+  if(dl<=2) return 'a';
+  if(dl<=5) return 'b';
+  return 'c';
+}
+const gradeLabel = {a:'A · 임박', b:'B · 곧 소비', c:'C · 여유', x:'기한 지남'};
+
+/* ---------- 탭 전환 ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+function switchSub(name){
+  document.querySelectorAll('.sub-btn').forEach(b=>b.classList.toggle('active', b.dataset.sub===name));
+  document.getElementById('sub-pkg').style.display = name==='pkg' ? 'block':'none';
+  document.getElementById('sub-rcpt').style.display = name==='rcpt' ? 'block':'none';
+}
+
+/* ---------- 설정 모달 ---------- */
+function openSettings(){
+  document.getElementById('provider1').value = settings.provider1 || 'gemini';
+  document.getElementById('provider2').value = settings.provider2 || 'gemini';
+  document.getElementById('settingsModal').classList.add('open');
+}
+function closeSettings(){ document.getElementById('settingsModal').classList.remove('open'); }
+function saveSettings(){
+  settings = {
+    provider1: document.getElementById('provider1').value,
+    provider2: document.getElementById('provider2').value
+  };
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  closeSettings();
+}
+
+/* ---------- 링(원형 유통기한 표시) ---------- */
+function ringSVG(percent, colorVar, label){
+  const r=26, c=2*Math.PI*r;
+  percent = Math.max(0, Math.min(1, percent));
+  const offset = c*(1-percent);
+  return `<svg viewBox="0 0 64 64" class="ring-wrap">
+    <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--line)" stroke-width="7"/>
+    <circle cx="32" cy="32" r="${r}" fill="none" stroke="${colorVar}" stroke-width="7"
+      stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${offset}"
+      transform="rotate(-90 32 32)"/>
+    <text x="32" y="37" text-anchor="middle" class="ring-text" fill="var(--ink)">${label}</text>
+  </svg>`;
+}
+
+/* ---------- 냉장고 렌더 ---------- */
+function renderFridge(){
+  const grid = document.getElementById('fridgeGrid');
+  const empty = document.getElementById('fridgeEmpty');
+  if(inventory.length===0){ grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+
+  const sorted = [...inventory].sort((a,b)=> daysLeft(a.expiryDate)-daysLeft(b.expiryDate));
+  grid.innerHTML = sorted.map(item=>{
+    const dl = daysLeft(item.expiryDate);
+    const g = gradeOf(dl);
+    const totalLife = Math.max(1, item.shelfLifeDays || 7);
+    const elapsed = totalLife - dl;
+    const percent = 1 - (elapsed/totalLife);
+    const colorVar = `var(--grade-${g})`;
+    const label = dl<0 ? `D+${Math.abs(dl)}` : (dl===0? 'D-day' : `D-${dl}`);
+    return `<div class="food-card">
+      <span class="cat">${item.category||'기타'}</span>
+      ${ringSVG(percent, colorVar, label)}
+      <div class="name">${item.name}</div>
+      <span class="grade-badge" style="background:var(--grade-${g}-soft); color:var(--grade-${g});">${gradeLabel[g]}</span>
+      <span class="exp-date">유통기한 ${item.expiryDate}</span>
+      <div class="card-actions">
+        <button class="use" onclick="removeItem('${item.id}')">다 썼어요</button>
+        <button class="del" onclick="removeItem('${item.id}')">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function removeItem(id){ inventory = inventory.filter(i=>i.id!==id); saveInventory(); renderFridge(); }
+function toggleManualForm(){
+  const f = document.getElementById('manualForm');
+  f.style.display = f.style.display==='none' ? 'block':'none';
+  document.getElementById('mf-purchase').value = todayStr();
+}
+function addManualItem(){
+  const name = document.getElementById('mf-name').value.trim();
+  if(!name){ alert('재료 이름을 입력해주세요.'); return; }
+  const cat = document.getElementById('mf-cat').value;
+  const purchase = document.getElementById('mf-purchase').value || todayStr();
+  const shelf = Number(document.getElementById('mf-shelf').value) || 7;
+  inventory.push({
+    id: 'it_'+Date.now()+Math.random().toString(16).slice(2),
+    name, category:cat, purchaseDate:purchase,
+    shelfLifeDays: shelf, expiryDate: addDays(purchase, shelf)
+  });
+  saveInventory(); renderFridge();
+  document.getElementById('mf-name').value='';
+  toggleManualForm();
+}
+
+/* ---------- 파일 선택 ---------- */
+function handleFileSelect(input, kind){
+  const file = input.files[0];
+  if(!file) return;
+  pendingScan[kind] = file;
+  const preview = document.getElementById(kind+'Preview');
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = 'block';
+  document.getElementById(kind+'Btn').disabled = false;
+  document.getElementById(kind+'Result').style.display = 'none';
+  document.getElementById(kind+'Status').textContent = '';
+}
+
+/* ---------- 1. 포장/바코드 백엔드 요청 ---------- */
+async function runPackageScan(){
+  const statusEl = document.getElementById('pkgStatus');
+  if(!pendingScan.pkg) return;
+  
+  document.getElementById('pkgBtn').disabled = true;
+  statusEl.className='status-line'; 
+  statusEl.textContent = '서버 AI가 사진을 분석하는 중... (수 초 소요될 수 있습니다)';
+  
+  const formData = new FormData();
+  formData.append('file', pendingScan.pkg);
+  formData.append('provider', settings.provider1);
+
+  try {
+    const res = await fetch(`${API_URL}/scan/package`, { method: 'POST', body: formData });
+    const json = await res.json();
+    if(json.status !== 'success') throw new Error(json.detail);
+    
+    statusEl.textContent = '인식 완료! 아래 내용을 확인하고 추가해주세요.';
+    renderPkgResult(json.data);
+  } catch(e) {
+    statusEl.className='status-line err';
+    statusEl.textContent = '인식 실패: ' + e.message;
+  } finally {
+    document.getElementById('pkgBtn').disabled = false;
+  }
+}
+function renderPkgResult(r){
+  const box = document.getElementById('pkgResult');
+  const shelf = r.estimatedShelfLifeDays || 7;
+  const purchase = todayStr();
+  box.style.display='block';
+  box.innerHTML = `
+    <div class="form-grid">
+      <div><label>재료 이름</label><input id="pr-name" value="${r.name||''}"></div>
+      <div><label>카테고리</label>
+        <select id="pr-cat">
+          ${['채소','과일','육류','수산물','유제품','가공식품','냉동식품','기타'].map(c=>`<option ${c===r.category?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div><label>등록일(오늘)</label><input id="pr-purchase" type="date" value="${purchase}"></div>
+      <div><label>예상 소비기한(일)</label><input id="pr-shelf" type="number" value="${shelf}"></div>
+    </div>
+    ${r.expiryDateOnPackage ? `<p class="hint">📦 포장 표기 유통기한: ${r.expiryDateOnPackage}</p>` : ''}
+    <button class="primary-btn" onclick="confirmPkgAdd()">냉장고에 추가</button>
+  `;
+}
+function confirmPkgAdd(){
+  const name = document.getElementById('pr-name').value.trim();
+  if(!name) return;
+  const cat = document.getElementById('pr-cat').value;
+  const purchase = document.getElementById('pr-purchase').value;
+  const shelf = Number(document.getElementById('pr-shelf').value) || 7;
+  inventory.push({
+    id:'it_'+Date.now()+Math.random().toString(16).slice(2),
+    name, category:cat, purchaseDate:purchase, shelfLifeDays:shelf,
+    expiryDate: addDays(purchase, shelf)
+  });
+  saveInventory(); renderFridge();
+  document.getElementById('pkgResult').style.display='none';
+  document.getElementById('pkgStatus').textContent = `'${name}' 냉장고에 추가 완료!`;
+  document.getElementById('pkgPreview').style.display='none';
+  document.getElementById('pkgBtn').disabled = true;
+  pendingScan.pkg = null;
+}
+
+/* ---------- 2. 영수증 백엔드 요청 ---------- */
+async function runReceiptScan(){
+  const statusEl = document.getElementById('rcptStatus');
+  if(!pendingScan.rcpt) return;
+  
+  document.getElementById('rcptBtn').disabled = true;
+  statusEl.className='status-line';
+  statusEl.textContent = '서버 AI가 영수증을 읽는 중...';
+  
+  const formData = new FormData();
+  formData.append('file', pendingScan.rcpt);
+  formData.append('provider', settings.provider1);
+
+  try {
+    const res = await fetch(`${API_URL}/scan/receipt`, { method: 'POST', body: formData });
+    const json = await res.json();
+    if(json.status !== 'success') throw new Error(json.detail);
+    
+    statusEl.textContent = `${(json.data.items||[]).length}개 품목 인식 완료! 확인 후 추가해주세요.`;
+    renderReceiptResult(json.data);
+  } catch(e) {
+    statusEl.className='status-line err';
+    statusEl.textContent = '인식 실패: ' + e.message;
+  } finally {
+    document.getElementById('rcptBtn').disabled = false;
+  }
+}
+function renderReceiptResult(r){
+  const box = document.getElementById('rcptResult');
+  const purchase = r.purchaseDate || todayStr();
+  const items = r.items || [];
+  box.style.display='block';
+  box.innerHTML = `
+    <div style="margin-bottom:8px;"><label style="font-size:12px;font-weight:700;color:var(--sub);">구매일</label>
+    <input type="date" id="rc-purchase" value="${purchase}" style="padding:7px 9px;border-radius:8px;border:1px solid var(--line);"></div>
+    <div class="scan-item-row header">
+      <span>품목명</span><span>카테고리</span><span>기한(일)</span><span>포함</span><span></span>
+    </div>
+    <div id="rc-rows">
+      ${items.map((it,idx)=>`
+        <div class="scan-item-row" data-idx="${idx}">
+          <input class="rc-name" value="${it.name||''}">
+          <select class="rc-cat">
+            ${['채소','과일','육류','수산물','유제품','가공식품','냉동식품','기타'].map(c=>`<option ${c===it.category?'selected':''}>${c}</option>`).join('')}
+          </select>
+          <input class="rc-shelf" type="number" value="${it.estimatedShelfLifeDays||7}">
+          <input class="rc-include" type="checkbox" checked style="width:18px;height:18px;">
+          <span></span>
+        </div>`).join('')}
+    </div>
+    <button class="primary-btn" onclick="confirmReceiptAdd()">체크된 항목 모두 추가</button>
+  `;
+}
+function confirmReceiptAdd(){
+  const purchase = document.getElementById('rc-purchase').value || todayStr();
+  const rows = document.querySelectorAll('#rc-rows .scan-item-row');
+  let count = 0;
+  rows.forEach(row=>{
+    if(!row.querySelector('.rc-include').checked) return;
+    const name = row.querySelector('.rc-name').value.trim();
+    if(!name) return;
+    const cat = row.querySelector('.rc-cat').value;
+    const shelf = Number(row.querySelector('.rc-shelf').value) || 7;
+    inventory.push({
+      id:'it_'+Date.now()+Math.random().toString(16).slice(2)+count,
+      name, category:cat, purchaseDate:purchase, shelfLifeDays:shelf,
+      expiryDate: addDays(purchase, shelf)
+    });
+    count++;
+  });
+  saveInventory(); renderFridge();
+  document.getElementById('rcptResult').style.display='none';
+  document.getElementById('rcptStatus').textContent = `${count}개 재료 냉장고에 추가 완료!`;
+  document.getElementById('rcptPreview').style.display='none';
+  document.getElementById('rcptBtn').disabled = true;
+  pendingScan.rcpt = null;
+}
+
+/* ---------- 3. 레시피 추천 백엔드 요청 ---------- */
+async function runRecipeRecommend(){
+  const statusEl = document.getElementById('recipeStatus');
+  const resultsEl = document.getElementById('recipeResults');
+  statusEl.className='status-line'; statusEl.textContent='';
+  resultsEl.innerHTML='';
+  
+  if(inventory.length===0){ statusEl.className='status-line err'; statusEl.textContent='재료가 없습니다. 추가해주세요.'; return; }
+  statusEl.textContent = '서버 AI가 레시피를 구상하는 중...';
+  
+  const list = inventory.map(i => ({ name: i.name, daysLeft: daysLeft(i.expiryDate) }));
+  
+  try {
+    const res = await fetch(`${API_URL}/recipe/recommend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: settings.provider2, ingredients: list })
+    });
+    
+    const json = await res.json();
+    if(json.status !== 'success') throw new Error(json.detail);
+    
+    statusEl.textContent = '';
+    renderRecipes(json.data.recipes || []);
+  } catch(e) {
+    statusEl.className='status-line err';
+    statusEl.textContent = '추천 실패: ' + e.message;
+  }
+}
+function renderRecipes(recipes){
+  const el = document.getElementById('recipeResults');
+  if(recipes.length===0){ el.innerHTML = '<p class="hint">추천 결과가 없어요. 다시 시도해주세요.</p>'; return; }
+  el.innerHTML = recipes.map(r=>`
+    <div class="recipe-card">
+      <h3>${r.title}</h3>
+      ${(r.usesUrgent&&r.usesUrgent.length) ? `<div class="urgent-tags">${r.usesUrgent.map(u=>`<span>⏰ ${u}</span>`).join('')}</div>` : ''}
+      <div class="recipe-sub">재료</div>
+      <ul>${(r.ingredients||[]).map(i=>`<li>${i}</li>`).join('')}</ul>
+      <div class="recipe-sub">조리 순서</div>
+      <ol>${(r.steps||[]).map(s=>`<li>${s}</li>`).join('')}</ol>
+    </div>
+  `).join('');
+}
+
+/* ---------- BMI ---------- */
+function calcBMI(){
+  const h = Number(document.getElementById('bmi-height').value);
+  const w = Number(document.getElementById('bmi-weight').value);
+  if(!h || !w){ alert('키와 몸무게를 모두 입력해주세요.'); return; }
+  const bmi = w / Math.pow(h/100, 2);
+  let cat, color;
+  if(bmi < 18.5){ cat='저체중'; color='var(--grade-b)'; }
+  else if(bmi < 23){ cat='정상체중'; color='var(--grade-c)'; }
+  else if(bmi < 25){ cat='과체중'; color='var(--grade-b)'; }
+  else { cat='비만'; color='var(--grade-a)'; }
+  document.getElementById('bmiResultBox').style.display='block';
+  document.getElementById('bmiValue').textContent = bmi.toFixed(1);
+  const catEl = document.getElementById('bmiCat');
+  catEl.textContent = cat;
+  catEl.style.color = color;
+}
+
+/* ---------- 초기화 ---------- */
+renderFridge();
+</script>
+</body>
+</html>
